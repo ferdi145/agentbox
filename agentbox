@@ -307,50 +307,59 @@ run_container() {
         --env "HISTFILE=/home/agent/.shell_history/zsh_history"
     )
 
-    # Use Docker named volume for tool config
-    local tool_volume_name="agentbox-${tool}-${container_name#agentbox-}"
-    local tool_config_dir
-    local host_config_dir
-
+    # Mount tool configuration
     if [[ "$tool" == "opencode" ]]; then
-        tool_config_dir="/home/agent/.config/opencode"
-        host_config_dir="${HOME}/.config/opencode"
+        # OpenCode: Use bind mounts for config and auth directories
+        local opencode_config_dir="${HOME}/.config/opencode"
+        local opencode_auth_dir="${HOME}/.local/share/opencode"
+
+        # Create directories if they don't exist
+        mkdir -p "$opencode_config_dir"
+        mkdir -p "$opencode_auth_dir"
+
+        mount_opts+=(
+            -v "${opencode_config_dir}:/home/agent/.config/opencode"
+            -v "${opencode_auth_dir}:/home/agent/.local/share/opencode"
+        )
+
+        log_info "OpenCode configuration and auth mounted"
     else
-        tool_config_dir="/home/agent/.claude"
-        host_config_dir="${HOME}/.claude"
-    fi
+        # Claude: Use Docker named volume for per-project isolation
+        local claude_volume_name="agentbox-claude-${container_name#agentbox-}"
 
-    # Check if volume exists and initialize if needed
-    if ! docker volume inspect "$tool_volume_name" &>/dev/null; then
-        log_info "Creating ${tool} volume and copying configuration from global config"
-        docker volume create "$tool_volume_name" &>/dev/null
+        # Check if volume exists and initialize if needed
+        if ! docker volume inspect "$claude_volume_name" &>/dev/null; then
+            log_info "Creating Claude CLI volume and copying configuration from global config"
+            docker volume create "$claude_volume_name" &>/dev/null
 
-        # Initialize volume with global config if it exists
-        # Run as root to ensure correct ownership regardless of host file permissions
-        local uid=$(id -u)
-        local gid=$(id -g)
+            # Initialize volume with global Claude config if it exists
+            local uid=$(id -u)
+            local gid=$(id -g)
 
-        if [[ -d "${host_config_dir}" ]]; then
-            docker run --rm \
-                -v "${host_config_dir}:/source:ro" \
-                -v "${tool_volume_name}:/dest" \
-                --user root \
-                "$IMAGE_NAME" \
-                sh -c "cp -r /source/* /dest/ 2>/dev/null; chown -R ${uid}:${gid} /dest"
-        else
-            docker run --rm \
-                -v "${tool_volume_name}:/dest" \
-                --user root \
-                "$IMAGE_NAME" \
-                chown -R ${uid}:${gid} /dest
+            if [[ -d "${HOME}/.claude" ]]; then
+                docker run --rm \
+                    -v "${HOME}/.claude:/source:ro" \
+                    -v "${claude_volume_name}:/dest" \
+                    --user root \
+                    "$IMAGE_NAME" \
+                    sh -c "cp -r /source/* /dest/ 2>/dev/null; chown -R ${uid}:${gid} /dest"
+            else
+                docker run --rm \
+                    -v "${claude_volume_name}:/dest" \
+                    --user root \
+                    "$IMAGE_NAME" \
+                    chown -R ${uid}:${gid} /dest
+            fi
         fi
+
+        mount_opts+=(-v "${claude_volume_name}:/home/agent/.claude")
+        mount_opts+=(--env "CLAUDE_CONFIG_DIR=/home/agent/.claude")
+
+        log_info "Claude CLI configuration mounted"
     fi
 
-    mount_opts+=(-v "${tool_volume_name}:${tool_config_dir}")
-
+    # Set tool environment variable
     mount_opts+=(--env "TOOL=$tool")
-
-    log_info "${tool} configuration mounted"
 
     # Mount host direnv approvals for translation if project has .envrc
     if [[ -f "$PROJECT_DIR/.envrc" ]]; then
