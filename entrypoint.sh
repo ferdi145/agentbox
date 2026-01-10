@@ -1,23 +1,18 @@
 #!/bin/bash
-# AgentBox entrypoint script - minimal initialization
 
 set -e
 
-# Ensure proper PATH
 export PATH="$HOME/.local/bin:$PATH"
 
-# Source NVM if available
 if [ -s "$HOME/.nvm/nvm.sh" ]; then
     export NVM_DIR="$HOME/.nvm"
     source "$NVM_DIR/nvm.sh"
 fi
 
-# Source SDKMAN if available
 if [ -f "$HOME/.sdkman/bin/sdkman-init.sh" ]; then
     source "$HOME/.sdkman/bin/sdkman-init.sh"
 fi
 
-# Create Python virtual environment if it doesn't exist in the project
 if [ -n "$PROJECT_DIR" ] && [ ! -d "$PROJECT_DIR/.venv" ] && [ -f "$PROJECT_DIR/requirements.txt" -o -f "$PROJECT_DIR/pyproject.toml" -o -f "$PROJECT_DIR/setup.py" ]; then
     echo "🐍 Python project detected, creating virtual environment..."
     cd "$PROJECT_DIR"
@@ -26,9 +21,7 @@ if [ -n "$PROJECT_DIR" ] && [ ! -d "$PROJECT_DIR/.venv" ] && [ -f "$PROJECT_DIR/
     echo "   Activate with: source .venv/bin/activate"
 fi
 
-# Set proper permissions on mounted SSH directory if it exists
 if [ -d "/home/agent/.ssh" ]; then
-    # Ensure correct permissions for SSH directory and files
     chmod 700 /home/agent/.ssh 2>/dev/null || true
     chmod 600 /home/agent/.ssh/* 2>/dev/null || true
     chmod 644 /home/agent/.ssh/*.pub 2>/dev/null || true
@@ -43,7 +36,6 @@ if [ -d "/tmp/host_direnv_allow" ]; then
         echo "✅ Direnv approvals copied from host"
 fi
 
-# Set up git config for commits inside container
 if [ -f "/tmp/host_gitconfig" ]; then
     cp /tmp/host_gitconfig /home/agent/.gitconfig
 else
@@ -57,21 +49,17 @@ EOF
     echo "ℹ️  Using default git identity (agent@agentbox). Configure ~/.gitconfig on host to customize."
 fi
 
-# Check if project has MCP servers and show reminder
 if [ -n "$PROJECT_DIR" ] && { [ -f "$PROJECT_DIR/.mcp.json" ] || [ -f "$PROJECT_DIR/mcp.json" ]; }; then
     echo "🔌 MCP configuration detected. To enable MCP servers, see AgentBox documentation."
 fi
 
-# Set terminal for better experience
 export TERM=xterm-256color
 
 # Handle terminal size
 if [ -t 0 ]; then
-    # Update terminal size
     eval $(resize 2>/dev/null || true)
 fi
 
-# If running interactively, show welcome message
 if [ -t 0 ] && [ -t 1 ]; then
     echo "🤖 AgentBox Development Environment"
     echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
@@ -84,5 +72,4 @@ if [ -t 0 ] && [ -t 1 ]; then
     echo ""
 fi
 
-# Execute the command passed to docker run
 exec "$@"
