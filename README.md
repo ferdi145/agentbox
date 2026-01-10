@@ -20,44 +20,29 @@ A Docker-based development environment for running Claude CLI in a more safe, is
 - **Docker**: Must be installed and running
 - **Bash 4.0+**: macOS ships with Bash 3.2, I recommend upgrading via Homebrew (`brew install bash`).
 
-## Multi-Directory Support
+## Installation and Quick Start
 
-AgentBox supports mounting additional directories for scenarios where your agent needs access to multiple projects:
-
-```bash
-# Mount a single additional directory
-agentbox --add-dir ~/other-project
-
-# Mount multiple directories (repeatable flag)
-agentbox --add-dir ~/proj1 --add-dir ~/proj2 --add-dir ~/proj3
-
-# Works with shell mode too
-agentbox --add-dir ~/library-code shell
-```
-
-## Installation
-
-1. Clone AgentBox to your preferred location
+1. Clone AgentBox to your preferred location (e.g. `~/code/agentbox/agentbox`)
 2. Ensure Docker is installed and running
 3. Make the script executable: `chmod +x agentbox`
-4. Optionally add to your PATH for global access
+4. (Strongly recommended) add an alias for global access - e.g. alias `agentbox` to `~/code/agentbox/agentbox`.
+5. Run `agentbox` from your desired working directory (wherever you would normally start your agentic coding tool).
 
-## Quick Start
+## Helpful Commands
 
 ```bash
-# Show available commands
-agentbox --help
-
 # Start Claude CLI in container (--dangerously-skip-permissions is automatically included)
 agentbox
 
+# Show available commands
+agentbox --help
 
 # Non-agentbox CLI flags are passed through to claude.
 # For example, to continue the most recent session
 agentbox -c
 
 # Mount additional directories for multi-project access
-agentbox --add-dir ~/proj1 --add-dir ~/proj2  # Multiple directories
+agentbox --add-dir ~/proj1 --add-dir ~/proj2 
 
 # Start shell with sudo privileges
 agentbox shell --admin
@@ -224,7 +209,6 @@ AgentBox began as a simplified replacement for [ClaudeBox](https://github.com/Rc
 | Setup | Automatic | Manual configuration |
 
 ## Support and Contributing
-I make no guarantee to support this project in the long term. Feel free to create issues and submit PRs. I like to think that I will attend to them. The project is designed to be understandable enough that if you need specific custom changes, which you may well do, you can fork or just make them locally for yourself. Theoretically you could easily this project to other AI Agents, for example.
+I make no guarantee to support this project in the future, however the history is positive: I've actively supported it since September 2025. Feel free to create issues and submit PRs. The project is designed to be understandable enough that if you need specific custom changes which we don't want centrally, you can fork or just make them locally for yourself.
 
-If you do contribute, consider that AgentBox is designed to be simple and maintainable. The value of new features will always be weighed against the added complexity.
-
+If you do contribute, consider that AgentBox is designed to be simple and maintainable. The value of new features will always be weighed against the added complexity. Try to find the simplest possible way to get things done and control the AI's desire to write such bloated doco.
