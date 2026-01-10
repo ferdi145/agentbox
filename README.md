@@ -57,6 +57,7 @@ agentbox --help
 # Start Claude CLI in container (--dangerously-skip-permissions is automatically included)
 agentbox
 
+
 # Non-agentbox CLI flags are passed through to claude.
 # For example, to continue the most recent session
 agentbox -c
@@ -133,9 +134,11 @@ This will:
 3. Generate a new Ed25519 key pair (if preferred, delete them and manually place your desired SSH keys in `~/.agentbox/ssh/`).
 
 ### Environment Variables
-If a `.env` file exists in your project directory, the environment variables defined there will automatically be loaded into the container.
+Environment variables are loaded from `.env` files in this order (later overrides earlier):
+1. `~/.agentbox/.env` (global)
+2. `<project-dir>/.env` (project-specific)
 
-AgentBox also includes `direnv` support - if you have a `.envrc` file in your project directory, it will be automatically evaluated inside the container if you have `direnv allow`ed it on your host machine.
+AgentBox includes `direnv` support - `.envrc` files are evaluated if `direnv allow`ed on the host.
 
 ## MCP Server Configuration
 
