@@ -7,10 +7,10 @@ A Docker-based development environment for running agentic coding tools in a mor
 ## Features
 
 - **Shares project directory with host**: Maps a volume with the source code so that you can see and modify the agent's changes on the host machine - just like if you were running your tool without a container.
-- **Multi-Tool Support**: Choose between Claude Code (default) or OpenCode via `--tool` flag or `AGENTBOX_TOOL` env var
+- **Multi-Tool Support**: All agentic coding tools are supported, some built-in, others [via prompt](#adding-tools).
 - **Unified Development Environment**: Single Docker image with Python, Node.js, Java, and Shell support
-- **Low-Maintenance Philosophy**: Always uses latest LTS tool versions, rebuilds container automatically when necessary
 - **Isolated SSH**: Dedicated SSH directory for secure Git operations
+- **Low-Maintenance Philosophy**: Always uses latest LTS tool versions, rebuilds container automatically when necessary
 
 ## Requirements
 
@@ -24,6 +24,19 @@ A Docker-based development environment for running agentic coding tools in a mor
 3. Make the script executable: `chmod +x agentbox`
 4. (Strongly recommended) add an alias for global access - e.g. alias `agentbox` to `~/code/agentbox/agentbox`.
 5. Run `agentbox` from your desired working directory (wherever you would normally start your agentic coding tool).
+
+## CLI Agent Support
+
+- claude code: built-in
+- opencode: built-in
+- any other agents (copilot CLI, Aider, Cursor CLI...): easily add it yourself using the prompt at [docs/prompts/add-tool.md](docs/prompts/add-tool.md).
+
+### Adding tools
+
+Start your coding agent in the agentbox directory and issue this (example) prompt:
+> Add support for Copilot CLI to this project using the instructions at @docs/prompts/add-tool.md.
+
+Then you can go to your project directory and run `agentbox --tool copilot`.
 
 ## Helpful Commands
 
