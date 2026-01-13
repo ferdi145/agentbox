@@ -36,7 +36,7 @@ A Docker-based development environment for running agentic coding tools in a mor
 Start your coding agent in the agentbox directory and issue this (example) prompt:
 > Add support for Copilot CLI to this project using the instructions at @docs/prompts/add-tool.md.
 
-Then you can go to your project directory and run `agentbox --tool copilot`.
+Then you can go to your project directory and run (e.g.) `agentbox --tool copilot`. Thanks to [Felix Medam](https://github.com/SputnikTea) for this very cool idea.
 
 ## Helpful Commands
 
