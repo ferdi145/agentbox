@@ -38,13 +38,40 @@ Automatic rebuilds are triggered by:
 This ensures tools stay updated without manual intervention or version checking overhead.
 
 ### Container Lifecycle
-1. Check Docker daemon
+1. Detect container runtime (Docker or Podman)
 2. Compare hashes → rebuild if needed (on rebuild: build new image, auto-prune dangling images)
 3. Run ephemeral container with all mounts
 4. Container removed automatically on exit
 
+### Container Runtime Detection
+
+AgentBox supports both Docker and Podman via automatic detection:
+
+**Detection Logic**:
+1. Check if `docker` command exists AND daemon is running (`docker info` succeeds)
+2. Fall back to `podman` if Docker check fails
+3. Error if neither is available
+
+**Runtime Variable**: Set once at startup in `main()`, used throughout via `$RUNTIME` variable substitution.
+
+**Compatibility**: All Docker commands used are Podman-compatible:
+- `build`, `run`, `inspect`, `image prune` - identical syntax
+- All flags (`--rm`, `-it`, `-v`, `--env`, etc.) - fully compatible
+- SELinux `:z` flag - supported by both runtimes
+- Labels system - identical implementation
+
+**Docker Preference**: Docker is tried first because:
+- Larger user base (more tested)
+- Daemon check ensures it's actually running
+- Podman users typically understand they're using a Docker alternative
+
+**Podman-Specific Handling**:
+- `--userns=keep-id` flag added for Podman rootless mode to maintain UID/GID mapping between host and container
+- Without this flag, Podman's user namespace mapping causes ownership mismatches on mounted volumes
+- This flag is not supported by Docker, so it's only added when using Podman
+
 ### Image Cleanup Strategy
-After each successful rebuild, `docker image prune -f --filter "label=agentbox.version"` removes dangling agentbox images. This prevents accumulation over time without manual intervention.
+After each successful rebuild, `$RUNTIME image prune -f --filter "label=agentbox.version"` removes dangling agentbox images. This prevents accumulation over time without manual intervention.
 
 ### Mount Points
 ```bash
@@ -105,7 +132,8 @@ Current image is large (~2GB) due to multiple language toolchains. Could optimiz
 ## Command Analysis
 
 The `agentbox` script has these key functions:
-- `check_docker()`: Verify Docker daemon is running
+- `detect_runtime()`: Detect available container runtime (Docker or Podman)
+- `check_runtime()`: Verify a container runtime is available
 - `calculate_hash()`: SHA256 hash for change detection
 - `needs_rebuild()`: Compare hashes with image label
 - `build_image()`: Docker build with proper args

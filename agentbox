@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# AgentBox - Simplified Docker environment for Claude development
+# AgentBox - Simplified container environment for Claude development
 # Automatically rebuilds when Dockerfile changes and uses ephemeral containers with persistent caches
 
 set -euo pipefail
@@ -24,6 +24,9 @@ readonly ENTRYPOINT_PATH="${SCRIPT_DIR}/entrypoint.sh"
 readonly IMAGE_NAME="agentbox:latest"
 readonly CONTAINER_PREFIX="agentbox"
 
+# Set by check_runtime() in main()
+RUNTIME=""
+
 # Colors for output
 readonly RED='\033[0;31m'
 readonly GREEN='\033[0;32m'
@@ -39,17 +42,25 @@ log_warning() { echo -e "${YELLOW}⚠${NC}  $1"; }
 log_error() { echo -e "${RED}❌${NC} $1" >&2; }
 log_build() { echo -e "${CYAN}🔨${NC} $1"; }
 
-# Check if Docker is installed and running
-check_docker() {
-    if ! command -v docker &> /dev/null; then
-        log_error "Docker is not installed. Please install Docker first."
-        exit 1
+# Detect available container runtime
+detect_runtime() {
+    if command -v docker &> /dev/null && docker info &> /dev/null; then
+        echo "docker"
+    elif command -v podman &> /dev/null && podman info &> /dev/null; then
+        echo "podman"
+    else
+        return 1
     fi
+}
 
-    if ! docker info &> /dev/null; then
-        log_error "Docker daemon is not running. Please start Docker."
+# Check if a container runtime is available
+check_runtime() {
+    local runtime
+    runtime=$(detect_runtime) || {
+        log_error "No container runtime found. Please install Docker or Podman."
         exit 1
-    fi
+    }
+    echo "$runtime"
 }
 
 # Calculate hash for a file
@@ -77,12 +88,12 @@ needs_rebuild() {
     local combined_hash="${dockerfile_hash}-${entrypoint_hash}"
 
     # Check if image exists
-    if ! docker image inspect "$IMAGE_NAME" &> /dev/null; then
+    if ! $RUNTIME image inspect "$IMAGE_NAME" &> /dev/null; then
         return 0  # Needs rebuild - image doesn't exist
     fi
 
     # Get stored hash from image
-    local stored_hash=$(docker inspect "$IMAGE_NAME" \
+    local stored_hash=$($RUNTIME inspect "$IMAGE_NAME" \
         --format '{{ index .Config.Labels "agentbox.hash" }}' 2>/dev/null || echo "none")
 
     # Compare hashes
@@ -107,7 +118,7 @@ build_image() {
 
     # Build with progress output
     local build_timestamp=$(date -u +%Y-%m-%dT%H:%M:%SZ)
-    if docker build \
+    if $RUNTIME build \
         --build-arg USER_ID="${user_id}" \
         --build-arg GROUP_ID="${group_id}" \
         --build-arg USERNAME="agent" \
@@ -118,7 +129,7 @@ build_image() {
         -t "$IMAGE_NAME" \
         "$SCRIPT_DIR" ; then
         log_success "Image built successfully!"
-        docker image prune -f --filter "label=agentbox.version" &>/dev/null || true
+        $RUNTIME image prune -f --filter "label=agentbox.version" &>/dev/null || true
         return 0
     else
         log_error "Failed to build image"
@@ -407,10 +418,17 @@ run_container() {
         fi
     done
 
+    # Build runtime-specific arguments
+    local runtime_args=()
+    if [[ "$RUNTIME" == "podman" ]]; then
+        runtime_args+=(--userns=keep-id)
+    fi
+
     # Run ephemeral container with --rm
-    docker run -it --rm \
+    $RUNTIME run -it --rm \
         --name "$container_name" \
         --hostname "agentbox-$PROJECT_NAME" \
+        "${runtime_args[@]}" \
         "${port_args[@]}" \
         "${mount_opts[@]}" \
         "${env_file_args[@]}" \
@@ -423,7 +441,7 @@ run_container() {
 # Show help
 show_help() {
     cat << EOF
-AgentBox - Simplified Docker environment for Claude development
+AgentBox - Simplified container environment for Claude development
 
 Usage:
     agentbox [OPTIONS] [COMMAND]
@@ -462,6 +480,9 @@ Containers are ephemeral and automatically removed when you exit.
 Package caches and shell history persist between sessions.
 
 All directories are mounted at their full host paths for symlink/path compatibility.
+
+Container Runtime:
+    Auto-detected (Docker preferred, Podman fallback)
 EOF
 }
 
@@ -582,8 +603,9 @@ main() {
         exit 1
     fi
 
-    # Check Docker
-    check_docker
+    # Check runtime
+    RUNTIME=$(check_runtime)
+    log_info "Using container runtime: $RUNTIME"
 
     # Get container name for current project
     local container_name=$(get_container_name)

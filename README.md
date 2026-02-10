@@ -2,25 +2,34 @@
 
 # AgentBox
 
-A Docker-based development environment for running agentic coding tools in a more safe, isolated fashion. This makes it less dangerous to give your agent full permissions (YOLO mode / `--dangerously-skip-permissions`), which is, in my opinion, the only way to use AI agents.
+A container-based development environment for running agentic coding tools in a more safe, isolated fashion. This makes it less dangerous to give your agent full permissions (YOLO mode / `--dangerously-skip-permissions`), which is, in my opinion, the only way to use AI agents.
 
 ## Features
 
 - **Shares project directory with host**: Maps a volume with the source code so that you can see and modify the agent's changes on the host machine - just like if you were running your tool without a container.
 - **Multi-Tool Support**: All agentic coding tools are supported, some built-in, others [via prompt](#adding-tools).
-- **Unified Development Environment**: Single Docker image with Python, Node.js, Java, and Shell support
+- **Unified Development Environment**: Single container image with Python, Node.js, Java, and Shell support
 - **Isolated SSH**: Dedicated SSH directory for secure Git operations
 - **Low-Maintenance Philosophy**: Always uses latest LTS tool versions, rebuilds container automatically when necessary
 
 ## Requirements
 
-- **Docker**: Must be installed and running
+- **Container Runtime**: Docker or Podman (only rootless podman has been tested)
 - **Bash 4.0+**: macOS ships with Bash 3.2, I recommend upgrading via Homebrew (`brew install bash`).
+
+## Container Runtime
+
+AgentBox works with Docker or Podman. The runtime is automatically detected:
+- Docker is used if available and running
+- Podman is used if Docker is unavailable
+- Error if neither is available
+
+No configuration needed - just install either runtime.
 
 ## Installation and Quick Start
 
 1. Clone AgentBox to your preferred location (e.g. `~/code/agentbox/agentbox`)
-2. Ensure Docker is installed and running
+2. Ensure Docker or Podman is installed and running
 3. Make the script executable: `chmod +x agentbox`
 4. (Strongly recommended) add an alias for global access - e.g. alias `agentbox` to `~/code/agentbox/agentbox`.
 5. Run `agentbox` from your desired working directory (wherever you would normally start your agentic coding tool).
@@ -71,7 +80,7 @@ agentbox ssh-init
 
 ## How It Works
 
-AgentBox creates ephemeral Docker containers (with `--rm`) that are automatically removed when you exit. However, important data persists between sessions:
+AgentBox creates ephemeral containers (with `--rm`) that are automatically removed when you exit. However, important data persists between sessions:
 
 ```
 Single Dockerfile → Build once → agentbox:latest image
@@ -91,7 +100,7 @@ Persistent data (survives container removal):
 
 ## Languages and Tools
 
-The unified Docker image includes:
+The unified container image includes:
 
 - **Python**: Latest version with `uv` for fast package management
 - **Node.js**: Latest LTS via NVM with npm, yarn, and pnpm
@@ -188,7 +197,7 @@ agentbox npm test
 
 ### Rebuild Control
 ```bash
-# Force rebuild the Docker image
+# Force rebuild the container image
 agentbox --rebuild
 ```
 
@@ -197,11 +206,11 @@ The image automatically rebuilds when:
 - Image is older than 48 hours (to get latest tool versions)
 
 ## Tool / Dependency Versions
-The Dockerfile is configured to pull the latest stable version of each tool (NVM, GitLab CLI, etc.) during the build process. This makes maintenance easy and ensures that we always use current software. It also means that rebuilding the Docker image may automatically result in newer versions of tools being installed, which could introduce unexpected behavior or breaking changes. If you require specific tool versions, consider pinning them in the Dockerfile.
+The Dockerfile is configured to pull the latest stable version of each tool (NVM, GitLab CLI, etc.) during the build process. This makes maintenance easy and ensures that we always use current software. It also means that rebuilding the container image may automatically result in newer versions of tools being installed, which could introduce unexpected behavior or breaking changes. If you require specific tool versions, consider pinning them in the Dockerfile.
 
 ## Alternatives
 ### Anthropic DevContainer
-Anthropic offers a [devcontainer](https://github.com/anthropics/claude-code/tree/main/.devcontainer) which achieves a similar goal. If you like devcontainers, that's a good option. Unfortunately, I find that devcontainers sometimes have weird bugs, problematic support in IntelliJ/Mac, or they are just more cumbersome to use (try switching to a recent project with a shortcut, for example). I don't want to force people to use a devcontainer if what they really want is safe YOLO-mode isolation - the simpler solution to the problem is just Docker, hence, this project.
+Anthropic offers a [devcontainer](https://github.com/anthropics/claude-code/tree/main/.devcontainer) which achieves a similar goal. If you like devcontainers, that's a good option. Unfortunately, I find that devcontainers sometimes have weird bugs, problematic support in IntelliJ/Mac, or they are just more cumbersome to use (try switching to a recent project with a shortcut, for example). I don't want to force people to use a devcontainer if what they really want is safe YOLO-mode isolation - the simpler solution to the problem is just containers, hence, this project.
 
 ### Comparison with ClaudeBox
 AgentBox began as a simplified replacement for [ClaudeBox](https://github.com/RchGrav/claudebox). I liked the ClaudeBox project, but its complexity caused a lot of bugs and I found myself maintaning my own fork with my not-yet-merged PRs. It became easier for me to build something leaner for my own needs. Comparison:
